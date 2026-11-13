@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Proposal: Non-MDM Workplace Attendance & App Restriction Architecture</title>
+<style>
+  @page {
+    size: letter;
+    margin: 20mm 18mm 20mm 18mm;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #1e293b;
+    background-color: #f8fafc;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 900px;
+    margin: 30px auto;
+    background: #ffffff;
+    padding: 48px 56px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+  }
+  @media print {
+    body { background-color: #ffffff; }
+    .container {
+      box-shadow: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      max-width: 100%;
+    }
+    .no-print { display: none !important; }
+    h1, h2, h3 { page-break-after: avoid; }
+    table, pre, blockquote { page-break-inside: avoid; }
+  }
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #6366f1;
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+  .doc-badge {
+    background: #e0e7ff;
+    color: #4338ca;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 9999px;
+  }
+  .print-btn {
+    background: #6366f1;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+  }
+  .print-btn:hover { background: #4f46e5; }
+  h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+  .meta-info {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  .meta-info strong { color: #334155; }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-top: 36px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 24px;
+    margin-bottom: 10px;
+  }
+  p, li {
+    font-size: 14.5px;
+    color: #334155;
+    line-height: 1.65;
+  }
+  ul, ol {
+    padding-left: 24px;
+    margin-bottom: 16px;
+  }
+  li { margin-bottom: 6px; }
+  strong { color: #0f172a; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 13.5px;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 14px;
+    border: 1px solid #cbd5e1;
+  }
+  td {
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+  }
+  tr:nth-child(even) td { background-color: #f8fafc; }
+  blockquote {
+    background-color: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    margin: 20px 0;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    color: #166534;
+    font-size: 14.5px;
+  }
+  blockquote p { margin: 0; color: #166534; }
+  pre {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 18px 0;
+  }
+  code {
+    background-color: #f1f5f9;
+    color: #4f46e5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  .callout-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .diagram-box {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .footer {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 16px;
+    margin-top: 40px;
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-bar no-print">
+    <span class="doc-badge">Executive Proposal</span>
+    <button class="print-btn" onclick="window.print()">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zm1 2h4a1 1 0 0 1 1 1v2H5V4a1 1 0 0 1 1-1zM1 7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7zm3 4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3H4v-3z"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <h1>Product Proposal: Non-MDM Workplace Attendance & App Restriction Architecture</h1>
+  <div class="meta-info">
+    <strong>Document Version:</strong> 1.0 &bull; 
+    <strong>Audience:</strong> Product Supervisor, Engineering Lead, HR / Compliance Team<br>
+    <strong>Core Theme:</strong> Personal Devices (BYOD) Workforce Productivity & Privacy-Preserving App Restriction
+  </div>
+
+  <h2>1. Executive Summary</h2>
+  <p>Traditional workforce productivity tools face a severe dilemma when deployed on <strong>personal mobile devices (BYOD)</strong>:</p>
+  <ul>
+    <li><strong>Mobile Device Management (MDM)</strong> solutions (such as Microsoft Intune or VMware Workspace ONE) require invasive device administrator privileges, remote wipe authority, and device-level monitoring. Employees rightfully resist installing them on personal hardware due to privacy concerns.</li>
+    <li><strong>Accessibility-based blockers</strong> request permissions that can inspect personal banking, private messaging, and screen contents, triggering Play Store rejections, OS security warnings, and legal liabilities.</li>
+  </ul>
+  <p>This document proposes a <strong>lightweight, privacy-first alternative</strong>: an attendance-based app restriction engine that:</p>
+  <ol>
+    <li>Operates <strong>strictly while the employee is timed in</strong>.</li>
+    <li>Requires <strong>zero MDM / zero device administrator rights</strong>.</li>
+    <li>Uses <strong>no Accessibility Service</strong> (preventing any access to screen contents, keystrokes, or private messages).</li>
+    <li>Configures restrictions dynamically from the <strong>company backend based on employee login codes and roles</strong>.</li>
+    <li>Disables all restrictions the instant the shift ends or the employee clocks out.</li>
+  </ol>
+
+  <h2>2. Why MDM Fails for Personal Devices (BYOD)</h2>
+  <p>If your product leadership has concerns about MDM, their concerns are backed by industry reality:</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 28%;">MDM Risk Factor</th>
+        <th>Impact on BYOD Workforce</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>"Nuclear Option" Remote Wipe</strong></td>
+        <td>MDM profiles give IT departments authority to remotely erase the entire phone. Employees fear losing personal family photos, WhatsApp chats, and personal banking apps.</td>
+      </tr>
+      <tr>
+        <td><strong>High Licensing Cost</strong></td>
+        <td>Enterprise MDMs cost <strong>$4 to $10 per employee per month</strong> in recurring subscription fees.</td>
+      </tr>
+      <tr>
+        <td><strong>Certificate / Traffic Inspection</strong></td>
+        <td>MDMs can route traffic through enterprise proxies, theoretically decrypting private web traffic.</td>
+      </tr>
+      <tr>
+        <td><strong>Legal & Labor Law Violations</strong></td>
+        <td>In many jurisdictions (such as California Labor Code, EU/GDPR, and the Philippines Labor Code), enforcing off-hours device restrictions or monitoring on personal assets exposes companies to labor lawsuits.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. The Solution: App-Level Enforcement (No MDM, No Accessibility)</h2>
+  <p>Instead of attempting to control the entire operating system via MDM, the app relies strictly on two standard, user-transparent Android system APIs:</p>
+  
+  <div class="callout-card">
+    <p><strong>1. UsageStatsManager (Usage Access)</strong></p>
+    <p>Allows the attendance service to query <em>which package is currently in the foreground</em> every 900ms. It has <strong>zero access to screen pixels, text fields, keystrokes, camera, or personal app content</strong>. It only evaluates: <em>"Is the frontmost window TikTok or Slack?"</em></p>
+  </div>
+
+  <div class="callout-card">
+    <p><strong>2. SYSTEM_ALERT_WINDOW (Display Over Other Apps)</strong></p>
+    <p>When a restricted package is detected during an active shift, a friendly translucent overlay appears displaying: <em>"This app is restricted during your attendance session. Please return to work tasks or clock out."</em> Tapping "Go Back" smoothly redirects the employee to their home screen or the company attendance portal.</p>
+  </div>
+
+  <h2>4. End-to-End System Flow</h2>
+  <div class="diagram-box">
+[Step 1: Authentication]
+Employee Phone  ──>  Enters Login Code ("EMP-4821")  ──>  Company Backend
+Backend         ──>  Validates Role & Department    ──>  Returns JWT + Profile
+
+[Step 2: Clock-In & Policy Delivery]
+Employee Phone  ──>  Taps "CLOCK IN"               ──>  Company Backend
+Backend         ──>  Logs Attendance Timestamp      ──>  Sends Policy JSON (Blocklist/Allowlist)
+
+[Step 3: Dynamic Local Enforcement (During Shift Only)]
+App Service     ──>  Polls UsageStatsManager (every 900ms)
+                     ├─ Blocked App (TikTok, Games)   ──> Shows Translucent Lock Overlay
+                     └─ Work App / Home Launcher      ──> Allowed Uninterrupted
+
+[Step 4: Clock-Out & Instant Release]
+Employee Phone  ──>  Taps "CLOCK OUT" (or Shift Ends) ──> Company Backend
+App Service     ──>  Kills Background Monitor & Disarms Overlay
+Phone State     ──>  100% unrestricted personal phone again
+  </div>
+
+  <h2>5. Backend Policy Architecture (Role-Based Restriction)</h2>
+  <p>Restrictions are <strong>never hardcoded</strong> into the mobile APK. Instead, policies are defined in your company admin dashboard and fetched dynamically upon login or clock-in:</p>
+
+  <pre><code>{
+  "employee_id": "EMP-9042",
+  "employee_name": "Marcus Vance",
+  "department": "Inventory & Logistics",
+  "role": "Warehouse Operator",
+  "shift": {
+    "shift_id": "SH-2026-11-13-A",
+    "scheduled_end": "2026-11-13T17:00:00Z",
+    "max_session_hours": 8.5
+  },
+  "restriction_policy": {
+    "policy_id": "POL_WAREHOUSE_STRICT",
+    "mode": "BLOCKLIST",
+    "auto_detect_categories": {
+      "block_all_games": true,
+      "block_all_browsers": true
+    },
+    "blocked_packages": [
+      "com.zhiliaoapp.musically",
+      "com.ss.android.ugc.trill",
+      "com.instagram.android",
+      "com.facebook.katana",
+      "com.twitter.android",
+      "com.reddit.frontpage",
+      "tv.twitch.android.app",
+      "com.netflix.mediaclient"
+    ],
+    "exempt_packages": [
+      "com.slack",
+      "com.google.android.apps.messaging",
+      "com.company.erp"
+    ]
+  }
+}</code></pre>
+
+  <h3>Why This Architecture Wins:</h3>
+  <ul>
+    <li><strong>Zero App Updates Required:</strong> When a new viral game or app emerges, HR or Operations adds the package name to the backend portal. All employee devices immediately adopt the new rule on their next shift.</li>
+    <li><strong>Department Tailoring:</strong>
+      <ul>
+        <li><em>Field Technicians:</em> Can use Google Maps and Camera; games and social media blocked.</li>
+        <li><em>Social Media Coordinators:</em> Can use Instagram and TikTok; games and personal browsers blocked.</li>
+        <li><em>Call Center / Retail Staff:</em> Strict distraction-free profile.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>6. Anti-Lockout Fail-Safes (Safety Guarantees)</h2>
+  <p>A primary concern for product leadership is ensuring employees are never locked out of vital functions on their personal phones. The system enforces <strong>five critical safety guarantees</strong>:</p>
+
+  <ol>
+    <li><strong>Emergency & Dialer Immunity:</strong> The phone dialer (<code>Intent.ACTION_DIAL</code>) and emergency services (911, 112, 999) can <strong>never</strong> be blocked under any circumstances.</li>
+    <li><strong>Device Settings Immunity:</strong> <code>com.android.settings</code> is strictly whitelisted. Employees can always adjust WiFi, Bluetooth, or manage their device settings.</li>
+    <li><strong>Home Launcher Immunity:</strong> Any app declaring <code>Intent.CATEGORY_HOME</code> (system launcher) is protected, ensuring phone navigation never freezes.</li>
+    <li><strong>Shift Dead-Man's Switch (Auto-Timeout):</strong> If an employee leaves work and forgets to clock out, the service automatically deactivates after a configurable threshold (e.g., 8.5 hours).</li>
+    <li><strong>Direct Escape Hatch on Lock Screen:</strong> The lock overlay features an immediate <strong>"Go to Attendance"</strong> button allowing the user to clock out or request a break at any moment.</li>
+  </ol>
+
+  <h2>7. Comparative Analysis Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th style="text-align: center;">Enterprise MDM</th>
+        <th style="text-align: center;">Accessibility Blocker</th>
+        <th style="text-align: center;">Proposed FocusGuard Solution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>BYOD / Personal Phone Friendly</strong></td>
+        <td style="text-align: center;">❌ Extremely Hostile</td>
+        <td style="text-align: center;">⚠️ Questionable</td>
+        <td style="text-align: center;">✅ <strong>100% Friendly</strong></td>
+      </tr>
+      <tr>
+        <td><strong>No Remote Device Wipe Ability</strong></td>
+        <td style="text-align: center;">❌ Can wipe personal phone</td>
+        <td style="text-align: center;">✅ Cannot wipe</td>
+        <td style="text-align: center;">✅ <strong>Cannot wipe</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Privacy: Can Inspect Screen Content</strong></td>
+        <td style="text-align: center;">⚠️ Can read device info</td>
+        <td style="text-align: center;">❌ Reads screen text & banking</td>
+        <td style="text-align: center;">✅ <strong>Zero access to screen/data</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Works ONLY During Clocked-In Hours</strong></td>
+        <td style="text-align: center;">❌ Always active 24/7</td>
+        <td style="text-align: center;">⚠️ Hard to orchestrate</td>
+        <td style="text-align: center;">✅ <strong>Strictly while timed in</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Play Store Policy Compliance</strong></td>
+        <td style="text-align: center;">✅ Compliant (Admin API)</td>
+        <td style="text-align: center;">❌ Frequently rejected</td>
+        <td style="text-align: center;">✅ <strong>Fully compliant (Special Use FGS)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Monthly Software Licensing Fees</strong></td>
+        <td style="text-align: center;">❌ $4–$10/user/month</td>
+        <td style="text-align: center;">❌ Commercial SDK fee</td>
+        <td style="text-align: center;">✅ <strong>$0 (In-house owned architecture)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Dynamic Backend Policy by Role</strong></td>
+        <td style="text-align: center;">⚠️ Requires MDM profiles</td>
+        <td style="text-align: center;">⚠️ Limited</td>
+        <td style="text-align: center;">✅ <strong>Native JSON REST API</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>8. Summary & Recommendation for Product Leadership</h2>
+  <blockquote>
+    <p><strong>Key Takeaway for Management:</strong><br>
+    This proposed architecture achieves <strong>100% of the operational objective</strong> (preventing TikTok, Instagram, gaming, and web surfing while on company time) with <strong>0% of the legal, financial, and cultural baggage of MDM</strong>.</p>
+  </blockquote>
+  <ul>
+    <li><strong>Employees accept it</strong> because it is completely transparent, does not inspect private texts or bank accounts, and completely deactivates when their shift ends.</li>
+    <li><strong>Operations gains full flexibility</strong> through dynamic, role-based restriction policies delivered from your existing backend database.</li>
+    <li><strong>The company avoids recurring enterprise MDM license fees</strong> while retaining full intellectual property ownership of the attendance solution.</li>
+  </ul>
+
+  <div class="footer">
+    <span>FocusGuard Architecture Proposal &bull; Version 1.0</span>
+    <span>Confidential &bull; Internal Company Presentation</span>
+  </div>
+</div>
+
+</body>
+</html>
