@@ -12,7 +12,12 @@ class PrefsManager(context: Context) {
         private const val KEY_BLOCKED_APPS = "blocked_apps"
         private const val KEY_IS_CLOCKED_IN = "is_clocked_in"
         private const val KEY_CLOCK_IN_TIME = "clock_in_time"
+        private const val KEY_FIRST_RUN = "is_first_run"
     }
+
+    var isFirstRun: Boolean
+        get() = prefs.getBoolean(KEY_FIRST_RUN, true)
+        set(value) = prefs.edit().putBoolean(KEY_FIRST_RUN, value).apply()
 
     var blockedApps: Set<String>
         get() = prefs.getStringSet(KEY_BLOCKED_APPS, emptySet()) ?: emptySet()

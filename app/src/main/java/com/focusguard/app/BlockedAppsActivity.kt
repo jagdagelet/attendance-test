@@ -61,23 +61,27 @@ class BlockedAppsActivity : AppCompatActivity() {
         }
     }
 
+    private fun getLauncherPackages(): Set<String> {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val resolveInfos = packageManager.queryIntentActivities(intent, 0)
+        return resolveInfos.mapNotNull { it.activityInfo?.packageName }.toSet()
+    }
+
     private fun loadInstalledApps(): List<AppInfo> {
         val pm = packageManager
         val installedApps = pm.getInstalledApplications(0)
+        val launcherPackages = getLauncherPackages()
 
         return installedApps
             .filter { app ->
-                // Only show user-installed apps (not system apps), but also include some common ones
-                (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-            }
-            .filter { app ->
-                // Don't show ourselves
-                app.packageName != packageName
-            }
-            .filter { app ->
-                // Must be launchable
+                // Must be launchable (has launcher icon in app drawer)
                 pm.getLaunchIntentForPackage(app.packageName) != null
+            }
+            .filter { app ->
+                // Don't show ourselves, System UI, or the home launcher
+                app.packageName != packageName &&
+                app.packageName != "com.android.systemui" &&
+                !launcherPackages.contains(app.packageName)
             }
             .map { app ->
                 AppInfo(

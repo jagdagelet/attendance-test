@@ -64,6 +64,9 @@ class LockOverlayActivity : AppCompatActivity() {
     }
 
     private fun goHome() {
+        // Tell service to ignore this app during task transition
+        blockedPackage?.let { AppBlockerService.markTransitionBack(it) }
+
         // Go to home screen
         val homeIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)

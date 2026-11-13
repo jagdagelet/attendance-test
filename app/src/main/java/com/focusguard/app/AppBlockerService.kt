@@ -23,6 +23,16 @@ class AppBlockerService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "com.focusguard.app.STOP_SERVICE"
 
+        @Volatile
+        var transitionBackPackage: String? = null
+        @Volatile
+        var transitionBackTime: Long = 0L
+
+        fun markTransitionBack(pkg: String) {
+            transitionBackPackage = pkg
+            transitionBackTime = System.currentTimeMillis()
+        }
+
         fun start(context: Context) {
             val intent = Intent(context, AppBlockerService::class.java)
             context.startForegroundService(intent)
@@ -40,8 +50,6 @@ class AppBlockerService : Service() {
     private var currentForeground: String? = null
     private var lastLockApp: String? = null
     private var lastLockTime = 0L
-    private var transitionBackTime = 0L
-    private var transitionBackPackage: String? = null
     private lateinit var prefsManager: PrefsManager
 
     private val pollRunnable = object : Runnable {
@@ -117,12 +125,13 @@ class AppBlockerService : Service() {
         // Don't block ourselves
         if (fg == packageName) return
 
-        // Don't block system UI, launcher, settings
-        if (fg.startsWith("com.android.") || fg == "com.google.android.apps.nexuslauncher" ||
-            fg == "com.sec.android.app.launcher" || fg == "android" ||
-            fg == "com.android.settings") {
+        // Don't block system UI, OS framework, or device settings
+        if (fg == "com.android.systemui" || fg == "android" || fg == "com.android.settings") {
             return
         }
+
+        // Don't block the home launcher so the user can always navigate home
+        if (isLauncherPackage(fg)) return
 
         // Check if it's in the blocked list
         val blockedApps = prefsManager.blockedApps
@@ -153,13 +162,14 @@ class AppBlockerService : Service() {
         startActivity(lockIntent)
     }
 
-    /**
-     * Called by LockOverlayActivity when user taps "Go Back" to mark a transition.
-     * We ignore the blocked package for 3 seconds to prevent re-triggering.
-     */
-    fun markTransitionBack(packageName: String) {
-        transitionBackPackage = packageName
-        transitionBackTime = System.currentTimeMillis()
+    private fun isLauncherPackage(pkg: String): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val resolveInfos = packageManager.queryIntentActivities(intent, 0)
+            resolveInfos.any { it.activityInfo?.packageName == pkg }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun createNotificationChannel() {

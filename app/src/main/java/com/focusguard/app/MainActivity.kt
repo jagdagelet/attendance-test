@@ -69,7 +69,35 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, BlockedAppsActivity::class.java))
         }
 
+        if (prefsManager.isFirstRun) {
+            autoSelectClockApp()
+            prefsManager.isFirstRun = false
+        }
+
         updateUI()
+    }
+
+    private fun autoSelectClockApp() {
+        try {
+            val pm = packageManager
+            val installedApps = pm.getInstalledApplications(0)
+            val clockPackages = setOf(
+                "com.google.android.deskclock",
+                "com.sec.android.app.clockpackage",
+                "com.android.deskclock",
+                "com.coloros.alarm",
+                "com.oneplus.deskclock",
+                "com.xiaomi.clock",
+                "com.huawei.deskclock"
+            )
+            for (app in installedApps) {
+                if (clockPackages.contains(app.packageName) ||
+                    app.packageName.contains("deskclock", ignoreCase = true)) {
+                    prefsManager.addBlockedApp(app.packageName)
+                    break
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onResume() {
