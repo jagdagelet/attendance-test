@@ -1,5 +1,6 @@
 package com.focusguard.app
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -69,6 +70,7 @@ class AppBlockerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             prefsManager.isClockedIn = false
+            WatchdogReceiver.cancel(this)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -91,7 +93,51 @@ class AppBlockerService : Service() {
 
         handler.post(pollRunnable)
 
+        // Schedule periodic Watchdog heartbeat to keep service alive
+        WatchdogReceiver.schedule(this)
+
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        if (prefsManager.isClockedIn) {
+            // When user swipes FocusGuard away from Recent Apps, resurrect monitoring in 500ms
+            val restartIntent = Intent(applicationContext, AppBlockerService::class.java)
+            val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                PendingIntent.getForegroundService(
+                    applicationContext, 2, restartIntent,
+                    PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+                )
+            } else {
+                PendingIntent.getService(
+                    applicationContext, 2, restartIntent,
+                    PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+                )
+            }
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager?.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis() + 500L,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager?.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis() + 500L,
+                        pendingIntent
+                    )
+                }
+            } catch (_: Exception) {
+                alarmManager?.set(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 500L,
+                    pendingIntent
+                )
+            }
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -104,6 +150,15 @@ class AppBlockerService : Service() {
     private fun checkForeground() {
         val usm = usageStatsManager ?: return
         val now = System.currentTimeMillis()
+
+        // Safety: Auto clock-out if session exceeds 12 hours so user is never locked out indefinitely
+        if (prefsManager.isClockedIn && (now - prefsManager.clockInTime) > 12 * 3600 * 1000L) {
+            prefsManager.isClockedIn = false
+            WatchdogReceiver.cancel(this)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
 
         try {
             val events = usm.queryEvents(lastQueryTime, now)
